@@ -1,0 +1,86 @@
+---
+title: "Lab 5"
+author: "Chuck Moore"
+date: "2024-02-08"
+output: html_document
+---
+
+
+
+```{r, fig.width=10, message = FALSE, warning= FALSE}
+library(completejourney)
+library(ggplot2)
+library(tidyverse)
+library(stringr)
+library(dplyr)
+```
+
+*Plot 1*
+
+```{r, message = FALSE, warning= FALSE}
+plot1 <- demographics %>%
+  filter(str_detect(age, "19-24|25-34")) %>%
+  inner_join(transactions_sample, by = "household_id") %>%
+  group_by(household_size) %>%
+  summarise(total_quantity = sum(quantity, na.rm = TRUE)) %>%
+  mutate("household_size" = fct_infreq(household_size)) %>%
+  ggplot(aes(x = household_size, y = total_quantity, group =))+
+  geom_col(fill = "darkgreen") +
+  geom_point(size = 6, color = "white") +
+  scale_y_continuous("Total Groceries Purchased", label = scales::number) +
+  scale_x_discrete("Household Size") +
+  ggtitle("Total Groceries Purchased by Household Size", subtitle = 
+            "For Families Under 35 Years Old")
+
+plot1
+```
+
+*Plot 2*
+
+```{r, fig.width=13, message = FALSE, warning= FALSE}
+plot2 <- products %>%
+  right_join(transactions_sample) %>%
+  inner_join(demographics, by = "household_id") %>%
+  filter(str_detect(product_type, "CIG")) %>%
+  group_by(income,marital_status) %>%
+  summarize(Total_Sales = sum(sales_value)) %>%
+  filter(!is.na(marital_status)) %>%
+  ggplot(aes(income, Total_Sales)) + 
+  geom_bar(stat = "identity",
+           fill = "purple") +
+  geom_smooth() +
+  facet_wrap(~`marital_status`, scales = "free") +
+  scale_y_continuous("Total Cigarette Product Sales", label = scales::dollar) + 
+  scale_x_discrete("Household Income Ranges") +
+  ggtitle("Cigarettes & Cigarette Product Sales", subtitle = 
+            "For Each Income Range & Marital Status")
+  
+plot2
+```
+
+*Plot 3*
+
+```{r, fig.width=14, message = FALSE, warning= FALSE}
+plot3 <- products %>%
+  right_join(transactions_sample) %>%
+  inner_join(demographics, by = "household_id") %>%
+  filter(str_detect(income, "200-249K|250K+")) %>%
+  mutate("YQ" = case_when(
+    between(week, 1, 13) ~ "Q1",
+    between(week, 14, 26) ~ "Q2",
+    between(week, 27, 39) ~ "Q3",
+    between(week, 40, 52) ~ "Q4")) %>%
+  count(product_type, YQ) %>%
+  filter(!is.na(YQ)) %>%
+  top_n(n = 8) %>%
+  ggplot(aes(x = product_type, y = n)) +
+  geom_col(fill = "navy") +
+  facet_wrap(~`YQ`, scales = "free") +
+  ggtitle("Top Purchased Products by Quarter of Year", subtitle = 
+            "For Families whose income exceeds 200K") + 
+  labs(x = "Product Type", y = "Quantity")
+plot3
+```
+
+
+
