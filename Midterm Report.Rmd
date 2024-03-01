@@ -1,0 +1,225 @@
+---
+title: "Midterm Report"
+author: "Chuck Moore, Joe Policano, Patrick Mowchan"
+date: "2024-02-22"
+output: html_document
+---
+
+## Regork Young Adult Profit Strategy {.tabset .tabset-fade .tabset-pills}
+
+### Introduction
+
+The objective of this analysis is to realize the Regork company’s growth potential. In doing so, they will be able to take advisable action towards increasing company profits, while improving the customer service experience of consumers at their product locations. 
+
+
+**How can we target younger consumer groups to increase company profitability?**
+
+We addressed this issue with a collection of statistics held in the data set provided by the Regork company. Using this data set, detailed analysis of customer demographic information was analyzed for the sake of revealing areas that may be exploited for increases in total profits. Visualization and exploratory data analysis techniques were employed to aid in the identification of potential areas for allowed growth. 
+
+The data analyzation and visualization conducted did provide solutions to increase Regork profitability in the extended future. Focus should be placed on demographics that include groups currently within 19-34 years of age. We believe that this demographic holds the strongest potential for upside over an extended period of time. It’s also essential that connection be identified with the top yielding sales products among this age group. By identifying top sales in gasoline as a product, as well as significantly under-producing department categories, coupon relations can be organized accordingly to create a positive interaction effect. Coupons with multiple benefit associations can also have the upside of increasing foot traffic in store, as well as in out of store purchases. 
+
+
+
+### Libraries 
+```{r, message=FALSE, warning=FALSE}
+library(completejourney) # retail shopping transaction data collected over one year, from 2,469 households
+
+library(purrr) # provides a toolkit in r for working with functions and vectors
+
+library(repurrrsive) # provides recursive lists in the form of R objects
+
+library(stringr) # provides functions to make working with character strings easier
+
+library(ggplot2) # system for creating graphs in detail
+
+library(here) # finds project files in R using a reasonable heuristic
+
+library(dplyr) # provides tools for manipulating and transforming data
+
+library(tidyverse) # helps tidy data in use, as well as work with other packages in R
+
+library(RColorBrewer) # R package that contains ready to use color palettes for graph creation
+
+library(DT) # R package that allows users to create data tables to view a dataset
+
+
+```
+
+
+### Exploratory Data Analysis: Data Mining
+```{r, message=FALSE, warning=FALSE}
+transactions <- get_transactions() #Used to obtain the full set of transactions from the study.
+
+glimpse(coupon_redemptions)
+
+
+new_data <- transactions %>%
+  inner_join(demographics, by = "household_id") 
+# New Data - #This data set was created to analyze transactions and demographics data in the same table
+
+final_data <- new_data %>%
+  inner_join(products, by = "product_id")
+
+glimpse(final_data)  # This data set combines products with the already formed “new data”. This allows us to analyze and represent our data in a way that is visually helpful.
+
+
+
+
+sales_data <- final_data %>%
+  mutate(adult_age = case_when(
+    age %in% c("19-24", "25-34") ~ "Young 19-34",
+    age %in% c("35-44", "45-54", "55-64") ~ "Middle Aged 35-64",
+    age %in% c("65+") ~ "Elderly 65+",
+    TRUE ~ NA_character_
+  )) %>%
+  filter(str_detect(adult_age, "Young 19-34")) %>%
+  group_by(product_type) %>%
+  summarise(total_sales = sum(sales_value)) %>%
+  arrange(desc(total_sales)) %>%
+  head(10)
+
+#The sales data allows us to uncover the top 10 highest grossing products among young adults.
+datatable(sales_data, options = list(pageLength = 5),
+          colnames = c("Product Type", "Total Sales"))
+
+coupon_data <- final_data %>%
+  inner_join(coupon_redemptions, by = "household_id",relationship = "many-to-many") %>%
+  mutate(adult_age = case_when(
+    age %in% c("19-24", "25-34") ~ "Young 19-34",
+    age %in% c("35-44", "45-54", "55-64") ~ "Middle Aged 35-64",
+    age %in% c("65+") ~ "Elderly 65+",
+    TRUE ~ NA_character_
+  )) %>%
+  filter(str_detect(adult_age, "Young 19-34")) %>%
+  filter(str_detect(product_type, "BEERALEMALT LIQUORS|SOFT DRINKS 12/18&15PK CAN CAR|CIGARETTES|GASOLINE-REG UNLEADED|FLUID MILK WHITE ONLY|BABY DIAPERS|SHREDDED CHEESE|PRIMAL|CHOICE BEEF|SNACKS/APPETIZERS"))
+# The coupon data was formed so that we could match the coupon redemptions to the transactions from Regork.  The transactions used in the coupon data, are of those from young adults.
+
+
+redemption_data <- coupon_data %>%
+  group_by(product_type) %>%
+  summarise(total_redem = n()) %>%
+  arrange(desc(total_redem)) 
+
+# The redemption data displays the number of coupons redeemed for the top 10 highest grossing products purchased by young adults.
+
+datatable(redemption_data, options = list(pageLength = 5),
+          colnames = c("Product Type", "Total Coupon Redemptions"))
+
+
+deptsales_data <- final_data %>%
+  mutate(adult_age = case_when(
+    age %in% c("19-24", "25-34") ~ "Young 19-34",
+    age %in% c("35-44", "45-54", "55-64") ~ "Middle Aged 35-64",
+    age %in% c("65+") ~ "Elderly 65+",
+    TRUE ~ NA_character_
+  )) %>%
+  filter(str_detect(adult_age, "Young 19-34")) %>%
+  group_by(department) %>%
+  summarise(total_sales = sum(sales_value)) %>%
+  arrange(desc(total_sales)) %>%
+  head(10) %>%
+  mutate(total_sales = scales::dollar_format(prefix = "$")(total_sales))
+
+#The department sales data was formed so that we could uncover the revenue from each department from young adults.
+
+datatable(deptsales_data, options = list(pageLength = 5),
+          colnames = c("Department", "Total Sales"))
+
+
+```
+
+### Exploratory Data Analysis: Data Visualization {.tabset}
+The Data Visualization section contains plots and tables of our findings from the Data Mining Section.
+
+#### Visualization 1
+Six age ranges were compiled to aid in data summary. Among those 6 ranges, we found ages 19-24 to have the lowest total sales. Ages (55 - 64) and (65+) were the second and third lowest performing groups. Ages (45-54) had the highest total product sales at Regork. We decided to focus on (19-34) year olds, as (19-24) was the lowest performing group and (25-34) year olds is an area with plenty of growth to still occur. We decided not to focus on the elderly or (55-64) age range because we want to focus on more long-term consumers.
+
+```{r, message=FALSE, warning=FALSE}
+Age_Range_Sales = demographics %>%
+  inner_join(transactions, by = "household_id") %>%
+  group_by(age) %>%
+  summarize(total_sales = sum(sales_value, na.rm = TRUE)) %>%
+  ggplot(aes(x = age, y = total_sales)) +
+  geom_col(fill = "skyblue", color = "black") +
+  geom_text(aes(label = scales::dollar(total_sales), y = total_sales), 
+            vjust = -0.5, size = 3, color = "black", position = position_dodge(width = 0.9)) +
+  scale_x_discrete("Customer Age Range") +
+  scale_y_continuous("Total Sales", labels = scales::dollar) +
+  ggtitle("Total Sales by Age Range")
+
+Age_Range_Sales
+```
+
+#### Visualization 2
+We then looked for the top ten products purchased by that age group. We found gasoline to be by far the most sales, with over 50k in sales for that year. Liquors and Milk were the second and third most purchased products coming in at just over 10k in sales. Snacks and appetizers came in 10th totaling near $5000 worth of sales for Regork.
+```{r, message=FALSE, warning=FALSE}
+sales_data_plot <- ggplot(sales_data, aes(x = total_sales, y = reorder(product_type, -total_sales))) + 
+  geom_col(fill = brewer.pal(10, "Set2")[4]) +  
+  scale_x_continuous("Total Product Sales", labels = scales::comma) +
+  scale_y_discrete("Product Type") +
+  ggtitle("Top 10 Products From Adults Aged 19-34") +
+  theme_minimal() +
+  theme(axis.text.y = element_text(size = 10, color = "black"),
+        axis.text.x = element_text(size = 10, color = "black"),
+        axis.title = element_text(size = 12, color = "black"),
+        plot.title = element_text(size = 14, hjust = 0.5, face = "bold"),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.background = element_rect(fill = "white"),
+        legend.position = "none"
+  )
+
+sales_data_plot
+```
+
+#### Visualization 3
+This graph shows how many coupons were being redeemed amongst (19-34) year olds with each of the top ten products. Milk had the most coupons used at just under 15,000 coupons redeemed for that product. Gasoline has the third most coupons redeemed, yet has the highest sales by far amongst the products. Cigarettes held the lowest amount of coupons redeemed. 
+```{r, message=FALSE, warning=FALSE}
+redemption_andsales <- redemption_data %>%
+  left_join(sales_data) %>%
+  ggplot(aes(x = total_redem, y = total_sales, color = product_type, fill = product_type)) + 
+  geom_point(size = 7, alpha = 0.8,  shape = 21, color = "black", stroke = 1.5) +
+  geom_segment(aes(x = 0, y = 0, xend = total_redem, yend = total_sales, color = product_type), 
+               linetype = "solid", alpha = 0.8) +
+  scale_x_continuous("Total Coupons Redeemed") +
+  scale_y_continuous("Total Sales", labels = scales::dollar) + 
+  labs(color = "Product Type Legend", fill = "Product Type Legend") +
+  theme_minimal() +  
+  theme(
+    axis.title.x = element_text(size = 22),
+    axis.title.y = element_text(size = 22),
+    axis.text.x = element_text(size = 14),
+    axis.text.y = element_text(size = 14)
+  )
+redemption_andsales
+```
+
+#### Visualization 4
+This data table shows the top ten departments total sales, revealing which ones were the lowest and highest performers. Groceries was by far the department with the most sales at over quadrupling the next leading department of Drug GM sales. Pastries was the tenth best performing department at around 7000 dollars brought in annually.
+
+```{r, warning=FALSE, message=FALSE}
+datatable(deptsales_data, options = list(pageLength = 5),
+          colnames = c("Department", "Total Sales"))
+```
+
+
+### Summary
+After our Analysis, we discovered methods to improve the revenue from the young adult age group (19 to 34). 
+
+One key finding was that gasoline is the most purchased product among young adults, yet there is a low coupon usage for gasoline. Our team viewed the lack of coupons used for gasoline, that as an opportunity to gravitate the age range towards other products. 
+
+A second discovery was that pastries were the lowest performing department for the young adult age range and that groceries were the highest performing department. Our findings of the lowest & highest performing departments greatly contributed to building our recommendations because our plan consists of campaigns involving placing coupons as gas pumps.
+
+By placing coupons at the gasoline pumps, the large amount of traffic at the gas pumps would increase the chances of buyers taking and using the coupons. Buyers will then begin buying products within whichever department that the product falls under.
+
+Recommendation number one, is to place coupons for products in the Pastry department, at the gas pumps.  The Pastry department was the lowest grossing department for young adult buyers ($7,645) and this is definetly improvable. By placing pastry coupons at gas pumps, which have a high traffic of young adult buyers, there is a higher chance of an adult taking & using a coupon.  Our belief is that after placing pastry coupons at gas pumps, this will result in greater revenue from the pastry department.
+
+Another recommendation would be to pair gas with a product in a well performing department. Similar to our first recommendation, this invites buyers to shop at other departments of Regork.  The main difference with offering coupons for departments with higher sales numbers such as the grocery department, is that Regork would be continuing to improve an already succeeding department.
+
+Throughout the process, we did discover certain limitations while working with the data. the first one being that the Metrics for gasoline statistics seem inconsistent within the data set, and lead to great uncertainty when analyzing quantities of gasoline sold in a given transaction. We also found that certain product types, categories, or departments hold great similarity, and potentially could have been combined, but were not due to ignorance of the data set and its creation.
+
+
+
+
+
+
