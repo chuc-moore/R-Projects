@@ -1,0 +1,121 @@
+---
+title: "Lab 8"
+author: "Chuck Moore"
+date: "2024-03-03"
+output: html_document
+---
+## Machine Learning {.tabset}
+
+### Libraries
+```{r, warning=FALSE, message=FALSE}
+library(tidymodels)
+library(tidyverse)
+library(ggplot2)
+library(kknn)
+```
+
+### Questions & Answers
+```{r, warning=FALSE, message=FALSE}
+#1 
+#Unsupervised, predicting a value dependent on an estimated regression model.
+
+#2
+#Cmedv is the response variable
+
+#3 Regression
+
+
+#4
+boston_data <- read_csv("boston.csv")
+view(boston_data)
+
+summary(boston_data$cmedv)
+
+sum(is.na(boston_data))
+
+
+#5
+set.seed(123)
+boston_split <- initial_split(boston_data, prop = 0.7, strata = cmedv)
+boston_train <- training(boston_split)
+boston_test <- testing(boston_split)
+
+#6
+dim(boston_train)
+#352 observations
+dim(boston_test)
+#154 observations
+
+#7
+ggplot(boston_train, aes(x = cmedv)) + 
+  geom_line(stat= "density", 
+            trim = TRUE) +
+  geom_line(data = boston_test,
+            stat = "density", 
+            trim = TRUE, col = "red")
+
+#Density is relatively similar
+
+
+boston_lml <- linear_reg() %>%
+  set_engine('lm') %>%
+  fit(cmedv ~ rm + crim, data = boston_train)
+
+
+boston_lml %>% 
+  predict(boston_test) %>%
+  bind_cols(boston_test %>% select(cmedv)) %>%
+  rmse(truth = cmedv, estimate = .pred)
+
+#RMSE estimate = 6.48
+
+mean(boston_test$cmedv)
+#22.48
+
+6.48 / mean(boston_test$cmedv)
+#0.2886
+
+
+
+#9
+
+boston_lm2 <- linear_reg() %>%
+  set_engine('lm') %>%
+  fit(cmedv ~ ., data = boston_train)
+
+boston_lm2 %>%
+  predict(boston_test) %>%
+  bind_cols(boston_test %>% select(cmedv)) %>%
+  rmse(truth = cmedv, estimate = .pred)
+
+mean(boston_test$cmedv)
+#0.215
+
+4.83 / mean(boston_test$cmedv)
+
+#0.2151
+
+
+#Better performing than the first model.
+
+
+# 10
+knn <- nearest_neighbor() %>%
+  set_engine("kknn") %>%
+  set_mode("regression") %>%
+  fit(cmedv ~ ., data = boston_train)
+
+knn %>%
+  predict(boston_test) %>%
+  bind_cols(boston_test %>% select(cmedv)) %>%
+  rmse(truth = cmedv, estimate = .pred)
+
+#rmse / mean
+
+3.37 / mean(boston_test$cmedv)
+
+#Knn is a better model because the test RMSE is lowest.
+```
+
+
+
