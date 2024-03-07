@@ -1,0 +1,52 @@
+---
+title: "Homework6"
+author: "Chuck Moore"
+date: "2024-02-22"
+output: html_document
+---
+
+*Libraries*
+```{r, message= FALSE, warning=FALSE}
+
+library(gapminder)
+library(tidyverse)
+library(ggplot2)
+library(stringr)
+library(lubridate)
+library(repurrrsive)
+library(purrr)
+
+data("gapminder")
+
+
+
+
+```
+
+
+*Plot for 2002*
+```{r, message=FALSE, warning=FALSE}
+Data_02 <- gapminder %>%
+  filter(year == 2002) %>%
+  ggplot(aes(x = gdpPercap, y = lifeExp, color = "continent")) + 
+  scale_x_log10(
+    breaks = 500 * 2^seq(0, 13, by = 1),
+    limits = c(500, 128000)
+  ) +
+  scale_y_continuous(
+    breaks = seq(10, 100, by = 10),
+    limits = c(10, 100)
+  ) + 
+  geom_point(shape = 21, aes(size = pop, fill = continent, alpha = 0.5)) +
+  theme(axis.line = element_line(color = "black"),
+        panel.grid.major = element_line(color="grey")) + 
+  annotate(geom = "text", x = 8000, y = 60, label = "2002", hjust = 0.5, vjust = 0.5, size = 20, alpha= 0.5)+
+  labs(x = "GDP per Capita",
+       y = "Life Expectancy",
+       title = "Hans Rosling Data",
+       subtitle = "2002")
+Data_02
+
+
+```
+
